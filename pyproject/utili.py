@@ -1,5 +1,5 @@
 from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
-    euclidean, lsi
+    euclidean, lsi, universal_sentence_encoder
 from sklearn.metrics.pairwise import cosine_similarity
 from pyproject.generazioneDf import dfGen
 import os
@@ -21,23 +21,46 @@ from gensim import models, corpora, similarities
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import pandas as pd
-import re
-import seaborn as sns
-from absl import logging
-import tensorflow as tf
-
-import tensorflow_hub as hub
 
 
-# ordina coppie (us, valore)
+
+def preprocessing(userStories):
+    """
+        removes from repetitive sequences user stories
+    :param userStories: string list
+    :return: string list: modified user story list
+    """
+    words_to_remove = ["as a ", "as an ", "as "
+                                          "i want to be able to ", "i want to ", "i want ", "i only want ",
+                       "i would like to ", "i would like a ", "i would be able to ", "i'm able to ",
+                       "so that i can ", "so that i ", "so that ", "so "]
+    new_userStories = []
+    for sentence in userStories:
+        sentence = sentence.lower()
+        for w in words_to_remove:
+            sentence = sentence.replace(w, '')
+        new_userStories.append(sentence)
+
+    return new_userStories
+
+
 def sortTriple(list):
+    """
+    sorts the list by value in descending order
+    :param list: list of triples (us1, us2, value)
+    :return:
+    """
+
     list.sort(key=lambda x: x[2], reverse=True)
     return list
 
 
-# controllo esistenza df del file
 def backup(fileName):
+    """
+    checks if the file (fileName) already has a dataframe
+    :param fileName: string
+    """
+
     if not fileName + ".pkl" in os.listdir("out"):
         print("creazione Data frame")
         dfGen(fileName)
@@ -47,6 +70,11 @@ def backup(fileName):
 
 # transform for euclidean
 def transform(sentences):
+    """
+        encodes and tokenizes sentences
+    :param sentences: string list
+    """
+
     tokens = [w for s in sentences for w in s]
 
     results = []
@@ -68,9 +96,14 @@ def transform(sentences):
 
 
 # calcolo misure
-def confronto(args):
-    file = args.usFile
-    misura = args.misura
+def confronto(file, misura, flag_pre):
+    """
+    calculates the given distance
+    :param file: string
+    :param misura: string
+    :param flag_pre: boolean, default: False
+    :return: dataframe[userStory, misura]
+    """
     backup(file)
     with open('out/' + file + '.pkl', 'rb') as dfl:
         df = pickle.load(dfl)
@@ -78,8 +111,11 @@ def confronto(args):
     userStories = df["userStory"].tolist()
 
     if misura == "cosine_vectorizer":
-        if "cosine_vectorizer" in df.columns:
-            return df[["userStory", "cosine_vectorizer"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
         complete_list = []
         for n in range(0, len(userStories)):
             sentence_sim_list = []
@@ -88,11 +124,15 @@ def confronto(args):
                                           cosine_distance_countvectorizer_method(userStories[n], userStories[m]) / 100))
             sentence_sim_list = sortTriple(sentence_sim_list)
             complete_list.append(sentence_sim_list)
-        df["cosine_vectorizer"] = complete_list
+        df[misura] = complete_list
 
     elif misura == "jaccard":
-        if "jaccard" in df.columns:
-            return df[["userStory", "jaccard"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
+
         complete_list = []
         for n in range(0, len(userStories)):
             sentence_sim_list = []
@@ -101,13 +141,15 @@ def confronto(args):
                                           jaccard_similarity(userStories[n], userStories[m])))
             sentence_sim_list = sortTriple(sentence_sim_list)
             complete_list.append(sentence_sim_list)
-        df["jaccard"] = complete_list
+        df[misura] = complete_list
 
     elif misura == "wordMover_word2vec":
-        if "wordMover_word2vec" in df.columns:
-            return df[["userStory", "wordMover_word2vec"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
 
-        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s')
         # Import and download stopwords from NLTK.
 
         download('stopwords')  # Download stopwords list.
@@ -128,11 +170,15 @@ def confronto(args):
             sentence_sim_list = sortTriple(sentence_sim_list)
             sentence_sim_list = sentence_sim_list[::-1]
             complete_list.append(sentence_sim_list)
-        df["wordMover_word2vec"] = complete_list
+        df[misura] = complete_list
 
     elif misura == "bert_cosine":
-        if "bert_cosine" in df.columns:
-            return df[["userStory", "bert_cosine"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
+
         bert_vects = bert(userStories)
         cosSim_list = []
         complete_list = []
@@ -148,11 +194,14 @@ def confronto(args):
                 lista.append(tripla)
             complete_list.append(sortTriple(lista))
 
-        df["bert_cosine"] = complete_list
+        df[misura] = complete_list
 
     elif misura == "euclidean":
-        if "euclidean" in df.columns:
-            return df[["userStory", "euclidean"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
 
         tok_sentences = []
         for sentence in userStories:
@@ -167,11 +216,14 @@ def confronto(args):
             score_list = score_list[::-1]
             complete_list.append(score_list)
 
-        df["euclidean"] = complete_list
+        df[misura] = complete_list
 
     elif misura == "lsi_cosine":
-        if "lsi_cosine" in df.columns:
-            return df[["userStory", "lsi_cosine"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
 
         complete_list = lsi(userStories)[0]
 
@@ -185,44 +237,43 @@ def confronto(args):
             triple_list = sortTriple(triple_list)
             score_list.append(triple_list)
 
-        df["lsi_cosine"] = score_list
+        df[misura] = score_list
 
     elif misura == "universal_sentence_encoder":
-        if "universal_sentence_encoder" in df.columns:
-            return df[["userStory", "universal_sentence_encoder"]]
+        if flag_pre:
+            userStories = preprocessing(userStories)
+            misura = misura + '_preProcessed'
+        if misura in df.columns:
+            return df[["userStory", misura]]
 
-        module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-        model = hub.load(module_url)
+        score_list = universal_sentence_encoder(userStories)
+        sorted_list = []
+        for list in score_list:
+            sorted_list.append(sortTriple(list))
 
-        # embeddings:
-        def embed(sentence):
-            return model(sentence)
-
-        embedded_sentences = embed(userStories)
-
-        total_list = []
-        for first in range(0, len(embedded_sentences)):
-            sim_list = []
-            for other in range(0, len(embedded_sentences)):
-                tripla = (first, other, np.inner(embedded_sentences[first],
-                                                 embedded_sentences[other]))
-                sim_list.append(tripla)
-            sim_list = sortTriple(sim_list)
-            total_list.append(sim_list)
-
-        df["universal_sentence_encoder"] = total_list
+        df[misura] = sorted_list
 
     # salvataggio
     with open('out/' + file + '.pkl', 'wb') as dfl:
         pickle.dump(df, dfl)
 
-    return df[["userStory", misura]]
+    return df
 
 
 # us più simili tra loro (5 valori più alti)
-def most_similar(args):
-    df = confronto(args)
-    misura = args.misura
+def most_similar(file, misura, flag_pre):
+    """
+    returns the most similar user stories in the file, using 'misura'
+    :param file: string
+    :param misura: string
+    :param flag_pre: default: False
+    :return: list of triples (us1, us2, val)
+    """
+
+    df = confronto(file, misura)
+
+    if flag_pre:
+        misura = misura + '_preProcessed'
 
     max_list = []
 
@@ -275,13 +326,21 @@ def most_similar(args):
         print(prima)
         print(seconda)
 
-    return "done"
+    return max_list
 
 
 # heatmap misura
-def heatmap(args):
-    complete_df = confronto(args)
-    misura = args.misura
+def heatmap(file, misura, flag_pre):
+    """
+    generate heatmap for the given similarity
+    :param file: string
+    :param misura: string
+    :param flag_pre: default: False
+    """
+    complete_df = confronto(file, misura)
+
+    if flag_pre:
+        misura = misura + '_preProcessed'
 
     # riordino i valori
     val_list = complete_df[misura].tolist()
@@ -298,3 +357,77 @@ def heatmap(args):
     heat = sns.heatmap(heat_df)
     plt.show()
     return "done"
+
+
+# apllica tutte le misure sul file
+def confronta_tutti(file):
+    """
+    caluclates all the similarities
+    :param file: string
+    :return: dataframe
+    """
+    backup(file)
+    with open('out/' + file + '.pkl', 'rb') as dfl:
+        df = pickle.load(dfl)
+
+    colonne = ["jaccard", "cosine_vectorizer", "bert_cosine", "wordMover_word2vec",
+               "euclidean", "lsi_cosine", "universal_sentence_encoder", "jaccard_preProcessed",
+               "cosine_vectorizer_preProcessed", "bert_cosine_preProcessed", "wordMover_word2vec_preProcessed",
+               "euclidean_preProcessed", "lsi_cosine_preProcessed", "universal_sentence_encoder_preProcessed"]
+
+    colonne_df = df.columns
+
+    for misura in colonne:
+        if misura not in colonne_df:
+            df = confronto(file, misura, False)
+            df = confronto(file, misura, True)
+
+    return df
+
+
+def get_line(file, us):
+    """
+    returns the us's raw in the dataframe dataframe
+    :param file: string
+    :param us: string
+    :return: list of pairs(similarity, ranked list)
+        ranked list is a list of triples (us1, us2, value)
+    """
+    df = confronta_tutti(file)
+
+    ranked_lists = []
+    userStories = df["userStory"].tolist()
+    ind = userStories.index(us)
+
+    for col in df.columns:
+        ranked = (col, df[col][ind])
+        ranked_lists.append(ranked)
+
+    return ranked_lists
+
+
+def concat_all_dataframes():
+    """
+    creates a dataframe for every file in Data
+    calculates all the similarities for the user stories in the filee
+    and concatenates all the dataframes
+    :return: dataframe
+    """
+    if not "all_dataframes.pkl" in os.listdir("out"):
+        print("creazione Data frame")
+        all = pd.DataFrame(columns=["userStory"])
+    else:
+        with open('out/all_dataframes.pkl', 'rb') as dfl:
+            all = pickle.load(dfl)
+            return all
+
+    for file in os.listdir("Data"):
+        if file != "GoogleNews-vectors-negative300.bin.gz":
+            df = confronta_tutti(file)
+            all = pd.concat([all, df])
+
+    # salvataggio
+    with open('out/all_dataframes.pkl', 'wb') as dfl:
+        pickle.dump(all, dfl)
+
+    return all

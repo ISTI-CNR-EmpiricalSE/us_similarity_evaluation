@@ -6,8 +6,7 @@ from scipy.spatial import distance
 from scipy.stats import entropy
 
 import gensim.corpora as corpora
-import nltk
-import re
+
 import numpy as np
 from gensim import corpora, similarities
 from gensim.models import LsiModel
@@ -15,9 +14,13 @@ from nltk.corpus import stopwords
 
 import nltk
 import sklearn
-import re
 
-import numpy as np
+from absl import logging
+
+import tensorflow as tf
+import tensorflow_hub as hub
+
+import re
 
 
 # cosine distance count vectorizer
@@ -81,25 +84,6 @@ def euclidean(first, sentences):
     return score_list
 
 
-# function to filter out stopwords and apply word stemming
-def filter_words_and_get_word_stems(document, word_tokenizer, word_stemmer,
-                                    stopword_set, pattern_to_match_words=r"[^\w]",
-                                    word_length_minimum_n_chars=2):
-    """Remove multiple white spaces and all non word content from text and
-    extract words. Then filter out stopwords and words with a length smaller
-    than word_length_minimum and apply word stemmer to get wordstems. Finally
-    return word stems.
-    """
-    document = re.sub(pattern_to_match_words, r" ", document)
-    document = re.sub(r"\s+", r" ", document)
-    words = word_tokenizer.tokenize(document)
-    words_filtered = [word.lower()
-                      for word in words
-                      if word.lower() not in stopword_set and len(word) >= word_length_minimum_n_chars]
-    word_stems = [word_stemmer.lemmatize(word) for word in words_filtered]
-    return word_stems
-
-
 def jensen_shannon(query, matrix):
     """
     This function implements a Jensen-Shannon similarity
@@ -130,7 +114,7 @@ def filter_words_and_get_word_stems(document, word_tokenizer, word_stemmer,
                       for word in words
                       if word.lower() not in stopword_set and len(word) >= word_length_minimum_n_chars]
     word_stems = [word_stemmer.lemmatize(word) for word in words_filtered]
-    return (word_stems)
+    return word_stems
 
 
 def lsi(sentences):
@@ -180,3 +164,24 @@ def lsi(sentences):
     sim_list = [[row for row in cosine_similarity_matrix]]
 
     return sim_list
+
+
+def universal_sentence_encoder(userStories):
+    module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
+    model = hub.load(module_url)
+
+    # embeddings:
+    def embed(sentence):
+        return model(sentence)
+
+    embedded_sentences = embed(userStories)
+
+    total_list = []
+    for first in range(0, len(embedded_sentences)):
+        sim_list = []
+        for other in range(0, len(embedded_sentences)):
+            tripla = (first, other, np.inner(embedded_sentences[first],
+                                             embedded_sentences[other]))
+            sim_list.append(tripla)
+        total_list.append(sim_list)
+    return total_list
