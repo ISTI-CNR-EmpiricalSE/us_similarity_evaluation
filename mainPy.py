@@ -1,8 +1,18 @@
 import argparse
-from pyproject.utili import confronto, most_similar, heatmap, confronta_tutti, get_line, concat_all_dataframes
+
+from anaconda_project.project_ops import download
+
+from pyproject.parserFunctions import confronto, most_similar, \
+    heatmap, confronta_tutti, get_line_byText, concat_all_dataframes, \
+    find_file, test_find_file
 
 
 def main():
+
+    # download stopwords from NLTK.
+    download('stopwords')  # Download stopwords list.
+
+
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='parser')
 
@@ -29,7 +39,7 @@ def main():
     parser_heatmap.add_argument('usFile', type=str, help='file di user stories')
     parser_heatmap.add_argument('misura', type=str,
                                 help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
-                                     "wordMover_word2vec | euclidean | lsi_cosine | universal_sentence_encoder")
+                                     "wordMover_word2vec | euclidean | lsi_cosine | universal_sentence_encoder ")
     parser_heatmap.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
     parser_heatmap.set_defaults(func=heatmap)
 
@@ -40,13 +50,30 @@ def main():
 
     # parser comando restituisci le ranked list della user story
     parser_get_line = subparsers.add_parser('get_line')
-    parser_get_line .add_argument('usFile', type=str, help='file di user stories')
-    parser_get_line .add_argument('us', type=str, help=' testo user story')
-    parser_get_line .set_defaults(func=get_line)
+    parser_get_line.add_argument('usFile', type=str, help='file di user stories')
+    parser_get_line.add_argument('us', type=str, help=' testo user story')
+    parser_get_line.set_defaults(func=get_line_byText)
 
     # parser comando concatena dataframe dei file in Data
     parser_concat = subparsers.add_parser('concat')
-    parser_concat .set_defaults(func=concat_all_dataframes)
+    parser_concat.set_defaults(func=concat_all_dataframes)
+
+    # parser comando trova file di appartenenza
+    parser_find_file = subparsers.add_parser('find_file')
+    parser_find_file.add_argument('k', type=int, help='numero us da estrarre')
+    parser_find_file.add_argument('group_fun', type=str, help='misure tra gruppi: avg, max, aggr')
+    parser_find_file.add_argument('misura', type=str,
+                                help="misure consentite: jaccard | cosine_vectorizer | "
+                                     "wordMover_word2vec | euclidean | universal_sentence_encoder")
+    parser_find_file.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_find_file.set_defaults(func=find_file)
+
+    # parser comando test di trova file di appartenenza
+    parser_test_find_file = subparsers.add_parser('test_find_file')
+    parser_test_find_file.add_argument('n', type=int, help='numero di test da fare per ogni valore di k')
+    parser_test_find_file.add_argument('group_fun', type=str, help='misure tra gruppi: avg, max, aggr')
+    parser_test_find_file.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_test_find_file.set_defaults(func=test_find_file)
 
     args = parser.parse_args()
     if args.parser == 'confronto':
@@ -61,8 +88,10 @@ def main():
         print(args.func(args.usFile, args.us))
     if args.parser == 'concat':
         print(args.func())
-
-
+    if args.parser == 'find_file':
+        print(args.func(args.k, args.group_fun, args.misura, args.p))
+    if args.parser == 'test_find_file':
+        print(args.func(args.n, args.group_fun, args.p))
 
 
 if __name__ == "__main__":

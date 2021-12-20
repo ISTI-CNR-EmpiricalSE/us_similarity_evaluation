@@ -59,7 +59,7 @@ def bert(sentences):
     return sentence_vecs
 
 
-# word Mover Distance+ word2vec
+# word Mover Distance + word2vec
 def wordMover_word2vec(s1, s2, model, stop_words):
     s1 = s1.lower().split()
     s2 = s2.lower().split()
@@ -185,3 +185,20 @@ def universal_sentence_encoder(userStories):
             sim_list.append(tripla)
         total_list.append(sim_list)
     return total_list
+
+
+def universal_sentence_encoder_2param(first_set, second_set, model):
+    # embeddings:
+    def embed(sentence):
+        return model(sentence)
+
+    embedded_first = embed(first_set)
+    embedded_second = embed(second_set)
+
+    sim_list = []
+    for first in range(0, len(embedded_first)):
+        for other in range(0, len(embedded_second)):
+            tripla = (first, other, np.inner(embedded_first[first],
+                                             embedded_second[other]))
+            sim_list.append(tripla)
+    return sim_list
