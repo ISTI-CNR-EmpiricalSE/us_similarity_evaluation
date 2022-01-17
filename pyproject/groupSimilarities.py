@@ -1,19 +1,30 @@
-from anaconda_project.project_ops import download
-import tensorflow as tf
 import tensorflow_hub as hub
 
 from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
-    euclidean, lsi, universal_sentence_encoder, universal_sentence_encoder_2param
+    euclidean, lsi, universal_sentence_encoder_2param
+
+from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
+    euclidean, lsi, universal_sentence_encoder
+from pyproject.utili import preprocessing, transform
+import pickle
+
+from random import randint
+
 from sklearn.metrics.pairwise import cosine_similarity
-from pyproject.utili import sortTriple, transform, preprocessing
-
-from nltk import download
-
 import nltk
 from nltk.corpus import stopwords
 from gensim import models, corpora, similarities
 
 import os
+import pandas as pd
+
+module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
+modelUSE = hub.load(module_url)
+if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
+    raise ValueError("SKIP: You need to download the google news model")
+
+model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
+    'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
 
 
 def group_score(first, second, misura, flag_pre):
@@ -42,11 +53,6 @@ def group_score(first, second, misura, flag_pre):
 
         stop_words = stopwords.words('english')
 
-        if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
-            raise ValueError("SKIP: You need to download the google news model")
-
-        model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
-            'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
         for n in range(0, len(first_set)):
             for m in range(0, len(second_set)):
                 complete_list.append((n, m,
@@ -55,33 +61,60 @@ def group_score(first, second, misura, flag_pre):
 
     elif misura == "euclidean" or misura == "euclidean_preProcessed":
 
-        tok_sentences = []
-        for sentence in second_set:
-            tok_sentences.append(nltk.word_tokenize(sentence))
-        second_transformed_us = transform(tok_sentences)
+        k = len(first_set)
 
-        tok_sentences = []
+        all_set = []
+
         for sentence in first_set:
+            all_set.append(sentence)
+        for sentence in second_set:
+            all_set.append(sentence)
+
+        tok_sentences = []
+        for sentence in all_set:
             tok_sentences.append(nltk.word_tokenize(sentence))
-        first_transformed_us = transform(tok_sentences)
 
-        for i in range(len(first_transformed_us)):
-            score_list = euclidean(i, second_transformed_us)
-            for tripla in score_list:
-                complete_list.append(tripla)
+        transformed_us = transform(tok_sentences)
 
-    elif misura == "universal_sentence_encoder" or misura == "universal_sentence_encoder_preProcessed":
-        module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-        model = hub.load(module_url)
-        complete_list = universal_sentence_encoder_2param(first_set, second_set, model)
+        complete_list = []
+        score_list = []
+
+        for i in range(0, k):
+            score_list.append(euclidean(i, transformed_us))
+
+        for list in score_list:
+            for tripla in list:
+                if tripla[1] not in range(0, k):
+                    complete_list.append(tripla)
+        return complete_list
+
+    elif misura == "universal_sentence_encoder" or \
+            misura == "universal_sentence_encoder_preProcessed":
+
+        complete_list = universal_sentence_encoder_2param(first_set, second_set, modelUSE)
+
+    elif misura == "bert_cosine" or misura == "bert_cosine_preProcessed":
+
+        bert_vects_first_set = bert(first_set)
+        bert_vects_second_set = bert(second_set)
+        cosSim_list = []
+
+        for sentence in bert_vects_first_set:
+            cosSim = cosine_similarity([sentence], bert_vects_second_set[0:])
+            cosSim_list.append(cosSim[0])
+
+        complete_list = []
+        for n in range(0, len(first_set)):
+            for m in range(0, len(second_set)):
+                complete_list.append([n, m, cosSim_list[n][m]])
 
     return complete_list
 
 
 def aggregate_score(first, second, misura, flag_pre):
     if flag_pre:
-        first = preprocessing(first)
-        second = preprocessing(second)
+        first = str(preprocessing(first))
+        second = str(preprocessing(second))
         misura = misura + "_preProcessed"
 
     if misura == "cosine_vectorizer" or misura == "cosine_vectorizer_preProcessed":
@@ -94,35 +127,37 @@ def aggregate_score(first, second, misura, flag_pre):
 
         stop_words = stopwords.words('english')
 
-        if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
-            raise ValueError("SKIP: You need to download the google news model")
-
-        model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
-            'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
-
         return wordMover_word2vec(first, second, model_word2vec, stop_words)
 
     elif misura == "euclidean" or misura == "euclidean_preProcessed":
 
-        tok_sentences = []
-        tok_sentences.append(nltk.word_tokenize(second))
-        second_transformed_us = transform(tok_sentences)
+        all_set = [first, second]
 
         tok_sentences = []
-        tok_sentences.append(nltk.word_tokenize(first))
-        first_transformed_us = transform(tok_sentences)
+        for sentence in all_set:
+            tok_sentences.append(nltk.word_tokenize(sentence))
 
-        return euclidean(first, second)
+        transformed_us = transform(tok_sentences)
+
+        res = euclidean(0, transformed_us)
+
+        return res[1]
 
     elif misura == "universal_sentence_encoder" or misura == "universal_sentence_encoder_preProcessed":
-        module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-        model = hub.load(module_url)
-        score = universal_sentence_encoder_2param([first], [second], model)
+        score = universal_sentence_encoder_2param([first], [second], modelUSE)
         return score[0]
+
+    elif misura == "bert_cosine" or misura == "bert_cosine_preProcessed":
+
+        bert_vects_first_set = bert(first)
+        bert_vects_second_set = bert(second)
+
+        cosSim = cosine_similarity([bert_vects_first_set], [bert_vects_second_set])
+
+        return cosSim[0][0]
 
 
 def misuraMax(first, second, misura, flag_pre):
-
     score_list = group_score(first, second, misura, flag_pre)
 
     if misura == "wordMover_word2vec" or misura == "euclidean" \
@@ -151,7 +186,6 @@ def misuraAverage(first, second, misura, flag_pre):
 
 
 def misuraAggregate(first, second, misura, flag_pre):
-
     first_set = ""
     second_set = ""
     for sentence in first:
@@ -160,3 +194,84 @@ def misuraAggregate(first, second, misura, flag_pre):
         second_set = second_set + sentence
 
     return aggregate_score(first_set, second_set, misura, flag_pre)
+
+
+def group_find_file(k, file_name, group_fun, misura, flagPre):
+    """
+    pops k user stories from a random file in Data
+    applies misura using group_fun
+    stores the result in a dataframe
+    :param k: int
+    :param file_name: string
+    :param group_fun: string
+    :param misura: string
+    :param flagPre: boolean
+    :return: dataframe
+    """
+
+    userStories = []
+    lines = open("Data/" + file_name, "r").readlines()
+    for line in lines:
+        if line != '\n':
+            userStories.append(line)
+
+    us_test = []
+    for i in range(0, k):
+        us_ind = randint(0, len(userStories) - 1)
+        us_temp = userStories.pop(us_ind)
+        us_test.append(us_temp)
+
+    print("us test:")
+    print(us_test)
+
+    files = os.listdir("Data")
+    val_list = []
+    for file in files:
+        us = []
+        lines = open("Data/" + file, "r").readlines()
+        for line in lines:
+            if line != '\n':
+                if file != file_name:
+                    us.append(line)
+                else:
+                    if line not in us_test:
+                        us.append(line)
+
+        if group_fun == "max":
+            val_list.append(misuraMax(us_test, us, misura, flagPre))
+        if group_fun == "avg":
+            val_list.append(misuraAverage(us_test, us, misura, flagPre))
+        if group_fun == "aggr":
+            val_list.append(misuraAggregate(us_test, us, misura, flagPre))
+
+    print(val_list)
+    if misura == "wordMover_word2vec" or misura == "euclidean" \
+            or misura == "wordMover_word2vec" or misura == "euclidean":
+        result = min(val_list)
+    else:
+        result = max(val_list)
+
+    result_ind = val_list.index(result)
+    result_file = files[result_ind]
+
+    if result_file == file_name:
+        result = "success"
+    else:
+        result = "fail"
+
+    if flagPre:
+        misura = misura + "_preProcessed"
+    if not "test_find_file" + ".pkl" in os.listdir("out"):
+        df = pd.DataFrame(columns=["file", "group_fun", "k", "similarity", "outcome", "result"])
+    else:
+        with open('out/test_find_file.pkl', 'rb') as dfl:
+            df = pickle.load(dfl)
+
+    df = df.append({"file": file_name, "group_fun": group_fun, "k": k,
+                    "similarity": misura, "outcome": result, "result": result_file}, ignore_index=True)
+
+    # salvataggio
+    with open('out/test_find_file.pkl', 'wb') as dfl:
+        pickle.dump(df, dfl)
+
+    return df, result

@@ -15,11 +15,14 @@ from nltk.corpus import stopwords
 import nltk
 import sklearn
 
-from absl import logging
+
+
 
 import tensorflow as tf
 import tensorflow_hub as hub
 
+module_url_USE = "https://tfhub.dev/google/universal-sentence-encoder/4"
+modelUSE = hub.load(module_url_USE)
 import re
 
 
@@ -82,7 +85,6 @@ def euclidean(first, sentences):
         tripla = (first, i, score)
         score_list.append(tripla)
     return score_list
-
 
 def jensen_shannon(query, matrix):
     """
@@ -167,12 +169,10 @@ def lsi(sentences):
 
 
 def universal_sentence_encoder(userStories):
-    module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-    model = hub.load(module_url)
 
     # embeddings:
     def embed(sentence):
-        return model(sentence)
+        return modelUSE(sentence)
 
     embedded_sentences = embed(userStories)
 

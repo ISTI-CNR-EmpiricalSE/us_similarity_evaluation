@@ -1,4 +1,4 @@
-from pyproject.groupSimilarities import misuraAverage, misuraMax, misuraAggregate
+from pyproject.groupSimilarities import group_find_file
 from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
     euclidean, lsi, universal_sentence_encoder
 from sklearn.metrics.pairwise import cosine_similarity
@@ -16,8 +16,13 @@ from gensim import models, corpora, similarities
 import matplotlib.pyplot as plt
 import os
 
-
 from random import randint
+
+if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
+    raise ValueError("SKIP: You need to download the google news model")
+
+model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
+    'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
 
 
 # calcolo misure
@@ -71,11 +76,6 @@ def confronto(file, misura, flag_pre):
 
         stop_words = stopwords.words('english')
 
-        if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
-            raise ValueError("SKIP: You need to download the google news model")
-
-        model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
-            'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
         complete_list = []
         for n in range(0, len(userStories)):
             sentence_sim_list = []
@@ -336,122 +336,78 @@ def concat_all_dataframes():
     and concatenates all the dataframes
     :return: dataframe
     """
+    # backup
     if not "all_dataframes.pkl" in os.listdir("out"):
         print("creazione Data frame")
-        all = pd.DataFrame(columns=["userStory"])
+        all_df = pd.DataFrame(columns=["userStory"])
     else:
         with open('out/all_dataframes.pkl', 'rb') as dfl:
-            all = pickle.load(dfl)
-            return all
+            all_df = pickle.load(dfl)
+            return all_df
 
     for file in os.listdir("Data"):
-       df = confronta_tutti(file)
-       all = pd.concat([all, df])
+        df = confronta_tutti(file)
+        all_df = pd.concat([all_df, df])
 
     # salvataggio
     with open('out/all_dataframes.pkl', 'wb') as dfl:
-        pickle.dump(all, dfl)
+        pickle.dump(all_df, dfl)
 
-    return all
+    return all_df
 
 
-def find_file(k, group_fun, misura, flagPre):
+def find_file(n, file_us, k, group_fun, misura, flagPre):
     """
-    pops k user stories from a random file in Data
-    applies misura using group_fun
-    stores the result in a dataframe
+    :param n: int
+    :param file_us: int
     :param k: int
     :param group_fun: string
     :param misura: string
     :param flagPre: boolean
     :return: dataframe
     """
-    files = os.listdir("Data")  # dir is your directory path
-    n = len(files)
-    file_ind = randint(0, n - 1)
 
-    file_name = files[file_ind]
-    userStories = []
-
-    lines = open("Data/" + file_name, "r").readlines()
-    for line in lines:
-        if line != '\n':
-            userStories.append(line)
-
-    us_test = []
-    for i in range(0, k):
-        us_ind = randint(0, len(userStories) - 1)
-        us_temp = userStories.pop(us_ind)
-        us_test.append(us_temp)
-
-    print("us test:")
-    print(us_test)
-
-    val_list = []
-    for file in files:
-        us = []
-        lines = open("Data/" + file, "r").readlines()
-        for line in lines:
-            if line != '\n':
-                us.append(line)
-
-        if group_fun == "max":
-            val_list.append(misuraMax(us_test, us, misura, flagPre))
-        if group_fun == "avg":
-            val_list.append(misuraAverage(us_test, us, misura, flagPre))
-        if group_fun == "aggr":
-            val_list.append(misuraAggregate(us_test, us, misura, flagPre))
-
-    print(val_list)
-    if misura == "wordMover_word2vec" or misura == "euclidean" \
-            or misura == "wordMover_word2vec" or misura == "euclidean":
-        result = min(val_list)
-    else:
-        result = max(val_list)
-
-    result_ind = val_list.index(result)
-    result_file = files[result_ind]
-
-    if result_file == file_name:
-        result = "success"
-    else:
-        result = "fail"
-
+    n_succ = 0
+    n_fail = 0
+    for i in range(0, n):
+        df, result = group_find_file(k, file_us, group_fun, misura, flagPre)
+        if result == "success":
+            n_succ = n_succ + 1
+        else:
+            n_fail = n_fail + 1
     if flagPre:
-        misura = misura + "_preProcessed"
-    if not "test_find_file" + ".pkl" in os.listdir("out"):
-        df = pd.DataFrame(columns=["file", "group_fun", "k", "similarity", "outcome", "result"])
-    else:
-        with open('out/test_find_file.pkl', 'rb') as dfl:
-            df = pickle.load(dfl)
-
-    df = df.append({"file": file_name, "group_fun": group_fun, "k": k,
-                    "similarity": misura, "outcome": result, "result": result_file}, ignore_index=True)
-    # salvataggio
-    with open('out/test_find_file.pkl', 'wb') as dfl:
-        pickle.dump(df, dfl)
+        misura = misura + 'preProcessed'
+    test_result = "file: " + file_us + ", misura: " + misura + " " + group_fun + ", k: " + str(
+        k) + ", % successi: " + str((n_succ / 100) * n) + "\n"
+    test_result_file = open("out/test_result.txt", "a")
+    test_result_file.write(str(test_result))
+    test_result_file.close()
+    print(test_result)
 
     return df
 
 
-def test_find_file(n, group_fun, flagPre):
+def find_file_test(file_us, group_fun, misura, flagPre):
     """
-    applies find_file n times using group_fun
-    for every 1<=k<=5
-    stores the result in a dataframe
-    :param n: int
+    calls find_file with k = 1,2,3,4,5
+    :param file_us: int
     :param group_fun: string
+    :param misura: string
     :param flagPre: boolean
-    :return: dataframe
     """
 
-    misure = ["jaccard", "cosine_vectorizer", "wordMover_word2vec",
-               "euclidean", "jaccard_preProcessed",
-               "cosine_vectorizer_preProcessed", "wordMover_word2vec_preProcessed",
-               "euclidean_preProcessed", "universal_sentence_encoder", "universal_sentence_encoder_preProcessed"]
+    for i in range(1, 6):
+        find_file(10, file_us, i, group_fun, misura, flagPre)
 
-    for misura in misure:
-        for k in range(1, 6):
-            for i in range(0, n):
-                df = find_file(k, group_fun, misura, flagPre)
-    return df
+    file = open("out/test_result.txt", "r")
+    lines = file.readlines()
+    last_lines = lines[-5:]
+
+    res = []
+    for line in last_lines:
+        res.append(line.split()[-1])
+
+    plt.plot([1, 2, 3, 4, 5], res, 'ro')
+
+    plt.show()
+    return
