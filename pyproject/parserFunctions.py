@@ -2,7 +2,7 @@ from pyproject.groupSimilarities import group_find_file
 from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
     euclidean, lsi, universal_sentence_encoder
 from sklearn.metrics.pairwise import cosine_similarity
-from pyproject.utili import backup, sortTriple, preprocessing, transform
+from pyproject.utili import backup, sortTriple, preprocessing, transform, loadModelUSE
 import pickle
 import seaborn as sns
 
@@ -16,13 +16,12 @@ from gensim import models, corpora, similarities
 import matplotlib.pyplot as plt
 import os
 
-from random import randint
-
 if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
     raise ValueError("SKIP: You need to download the google news model")
 
 model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
     'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
+modelUSE = loadModelUSE()
 
 
 # calcolo misure
@@ -150,7 +149,7 @@ def confronto(file, misura, flag_pre):
         if misura in df.columns:
             return df[["userStory", misura]]
 
-        score_list = universal_sentence_encoder(userStories)
+        score_list = universal_sentence_encoder(userStories, modelUSE())
         sorted_list = []
         for list in score_list:
             sorted_list.append(sortTriple(list))
@@ -174,7 +173,7 @@ def most_similar(file, misura, flag_pre):
     :return: list of triples (us1, us2, val)
     """
 
-    df = confronto(file, misura)
+    df = confronto(file, misura, flag_pre)
 
     if flag_pre:
         misura = misura + '_preProcessed'
@@ -241,7 +240,7 @@ def heatmap(file, misura, flag_pre):
     :param misura: string
     :param flag_pre: default: False
     """
-    complete_df = confronto(file, misura)
+    complete_df = confronto(file, misura, flag_pre)
 
     if flag_pre:
         misura = misura + '_preProcessed'
@@ -283,7 +282,7 @@ def confronta_tutti(file):
 
     for misura in colonne:
         if misura not in colonne_df:
-            df = confronto(file, misura, False)
+            confronto(file, misura, False)
             df = confronto(file, misura, True)
 
     return df

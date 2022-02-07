@@ -2,13 +2,14 @@ import argparse
 
 from anaconda_project.project_ops import download
 
+from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_confronto, rank_us, rank_all, avg_value
 from pyproject.parserFunctions import confronto, most_similar, \
     heatmap, confronta_tutti, get_line_byText, concat_all_dataframes, \
     find_file, find_file_test
 
 
 def main():
-    # download stopwords from NLTK.
+    #download stopwords from NLTK
     download('stopwords')  # Download stopwords list.
 
     parser = argparse.ArgumentParser()
@@ -90,6 +91,51 @@ def main():
     parser_find_file_test.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
     parser_find_file_test.set_defaults(func=find_file_test)
 
+
+
+    # parser crea dataframe del file
+    parser_excel = subparsers.add_parser('excel')
+    parser_excel.add_argument('fileName', type=str)
+    parser_excel.set_defaults(func=excel_to_dataframe)
+
+    # parser crea dataframe per file con user stories originali
+    parser_excel_original = subparsers.add_parser('excel_original')
+    parser_excel_original.set_defaults(func=original_us_dataframe)
+
+    # parser confronto tra us di un file e quelle originali
+    parser_excel_confronto = subparsers.add_parser('excel_confronto')
+    parser_excel_confronto.add_argument('fileName', type=str, help='file di user stories')
+    parser_excel_confronto.add_argument('misura', type=str,
+                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
+                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
+    parser_excel_confronto.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_excel_confronto.set_defaults(func=excel_confronto)
+
+    # parser plot di similarità con us originali
+    parser_excel_rank = subparsers.add_parser('excel_rank')
+    parser_excel_rank.add_argument('fileName', type=str, help='file di user stories')
+    parser_excel_rank.add_argument('misura', type=str,
+                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
+                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
+    parser_excel_rank.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_excel_rank.set_defaults(func=rank_us)
+
+    # parser per plot unico di tutti i file
+    parser_excel_rank_all = subparsers.add_parser('excel_rank_all')
+    parser_excel_rank_all.add_argument('misura', type=str,
+                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
+                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
+    parser_excel_rank_all.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_excel_rank_all.set_defaults(func=rank_all)
+
+    # parser avg
+    parser_excel_avg = subparsers.add_parser('excel_avg')
+    parser_excel_avg.add_argument('misura', type=str,
+                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
+                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
+    parser_excel_avg.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_excel_avg.set_defaults(func=avg_value)
+
     args = parser.parse_args()
     if args.parser == 'confronto':
         print(args.func(args.usFile, args.misura, args.p))
@@ -107,8 +153,20 @@ def main():
         print(args.func(args.n, args.usFile, args.k,
                         args.group_fun, args.misura, args.p))
     if args.parser == 'find_file_test':
-        print(args.func (args.usFile,
+        print(args.func(args.usFile,
                         args.group_fun, args.misura, args.p))
+    if args.parser == "excel":
+        args.func(args.fileName)
+    if args.parser == "excel_original":
+        args.func()
+    if args.parser == 'excel_confronto':
+        print(args.func(args.fileName, args.misura, args.p))
+    if args.parser == 'excel_rank':
+        print(args.func(args.fileName, args.misura, args.p))
+    if args.parser == 'excel_rank_all':
+        args.func(args.misura, args.p)
+    if args.parser == 'excel_avg':
+        args.func(args.misura, args.p)
 
 
 if __name__ == "__main__":

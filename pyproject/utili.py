@@ -3,10 +3,13 @@ import sklearn
 import numpy as np
 import os
 
+import tensorflow as tf
+import tensorflow_hub as hub
+
 
 def preprocessing(userStories):
     """
-        removes from repetitive sequences user stories
+    removes from repetitive sequences user stories
     :param userStories: string list
     :return: string list: modified user story list
     """
@@ -72,3 +75,14 @@ def transform(sentences):
 
         results.append(np.sum(encoded_words.toarray(), axis=0))
     return results
+
+
+def sort_list(val_list):
+    sorted_by_second = sorted(val_list, key=lambda tup: tup[1], reverse=True)
+    return sorted_by_second
+
+
+def loadModelUSE():
+    module_url_USE = "https://tfhub.dev/google/universal-sentence-encoder/4"
+    modelUSE = hub.load(module_url_USE)
+    return modelUSE

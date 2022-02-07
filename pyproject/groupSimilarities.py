@@ -1,11 +1,9 @@
 import tensorflow_hub as hub
 
-from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
-    euclidean, lsi, universal_sentence_encoder_2param
-
-from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
-    euclidean, lsi, universal_sentence_encoder
-from pyproject.utili import preprocessing, transform
+from pyproject.misure import universal_sentence_encoder_2param, jaccard_similarity, \
+    cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
+    euclidean
+from pyproject.utili import preprocessing, transform, loadModelUSE
 import pickle
 
 from random import randint
@@ -18,13 +16,9 @@ from gensim import models, corpora, similarities
 import os
 import pandas as pd
 
-module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-modelUSE = hub.load(module_url)
 if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
     raise ValueError("SKIP: You need to download the google news model")
-
-model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
-    'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
+modelUSE = loadModelUSE()
 
 
 def group_score(first, second, misura, flag_pre):
@@ -50,7 +44,8 @@ def group_score(first, second, misura, flag_pre):
                                       jaccard_similarity(first_set[n], second_set[m])))
 
     elif misura == "wordMover_word2vec" or misura == "wordMover_word2vec_preProcessed":
-
+        model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
+            'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
         stop_words = stopwords.words('english')
 
         for n in range(0, len(first_set)):
@@ -91,7 +86,7 @@ def group_score(first, second, misura, flag_pre):
     elif misura == "universal_sentence_encoder" or \
             misura == "universal_sentence_encoder_preProcessed":
 
-        complete_list = universal_sentence_encoder_2param(first_set, second_set, modelUSE)
+        complete_list = universal_sentence_encoder_2param(first_set, second_set, modelUSE())
 
     elif misura == "bert_cosine" or misura == "bert_cosine_preProcessed":
 
@@ -124,7 +119,8 @@ def aggregate_score(first, second, misura, flag_pre):
         return jaccard_similarity(first, second)
 
     elif misura == "wordMover_word2vec" or misura == "wordMover_word2vec_preProcessed":
-
+        model_word2vec = models.keyedvectors.KeyedVectors.load_word2vec_format(
+            'fileUtili/GoogleNews-vectors-negative300.bin.gz', binary=True)
         stop_words = stopwords.words('english')
 
         return wordMover_word2vec(first, second, model_word2vec, stop_words)
@@ -144,7 +140,7 @@ def aggregate_score(first, second, misura, flag_pre):
         return res[1]
 
     elif misura == "universal_sentence_encoder" or misura == "universal_sentence_encoder_preProcessed":
-        score = universal_sentence_encoder_2param([first], [second], modelUSE)
+        score = universal_sentence_encoder_2param([first], [second], modelUSE())
         return score[0]
 
     elif misura == "bert_cosine" or misura == "bert_cosine_preProcessed":
@@ -245,8 +241,10 @@ def group_find_file(k, file_name, group_fun, misura, flagPre):
             val_list.append(misuraAggregate(us_test, us, misura, flagPre))
 
     print(val_list)
+    if flagPre:
+        misura = misura + "_preProcessed"
     if misura == "wordMover_word2vec" or misura == "euclidean" \
-            or misura == "wordMover_word2vec" or misura == "euclidean":
+            or misura == "wordMover_word2vec_preProcessed" or misura == "euclidean_preProcessed":
         result = min(val_list)
     else:
         result = max(val_list)
@@ -259,8 +257,6 @@ def group_find_file(k, file_name, group_fun, misura, flagPre):
     else:
         result = "fail"
 
-    if flagPre:
-        misura = misura + "_preProcessed"
     if not "test_find_file" + ".pkl" in os.listdir("out"):
         df = pd.DataFrame(columns=["file", "group_fun", "k", "similarity", "outcome", "result"])
     else:

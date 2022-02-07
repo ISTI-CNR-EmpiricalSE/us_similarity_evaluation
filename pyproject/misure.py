@@ -15,14 +15,6 @@ from nltk.corpus import stopwords
 import nltk
 import sklearn
 
-
-
-
-import tensorflow as tf
-import tensorflow_hub as hub
-
-module_url_USE = "https://tfhub.dev/google/universal-sentence-encoder/4"
-modelUSE = hub.load(module_url_USE)
 import re
 
 
@@ -85,19 +77,6 @@ def euclidean(first, sentences):
         tripla = (first, i, score)
         score_list.append(tripla)
     return score_list
-
-def jensen_shannon(query, matrix):
-    """
-    This function implements a Jensen-Shannon similarity
-    between the input query (an LDA topic distribution for a document)
-    and the entire corpus of topic distributions.
-    It returns an array of length M where M is the number of documents in the corpus
-    """
-    # lets keep with the p,q notation above
-    p = query[None, :].T  # take transpose
-    q = matrix.T  # transpose matrix
-    m = 0.5 * (p + q)
-    return np.sqrt(0.5 * (entropy(p, m) + entropy(q, m)))
 
 
 # function to filter out stopwords and apply word stemming for LSI
@@ -168,8 +147,7 @@ def lsi(sentences):
     return sim_list
 
 
-def universal_sentence_encoder(userStories):
-
+def universal_sentence_encoder(userStories, modelUSE):
     # embeddings:
     def embed(sentence):
         return modelUSE(sentence)
@@ -187,10 +165,10 @@ def universal_sentence_encoder(userStories):
     return total_list
 
 
-def universal_sentence_encoder_2param(first_set, second_set, model):
+def universal_sentence_encoder_2param(first_set, second_set, modelUSE):
     # embeddings:
     def embed(sentence):
-        return model(sentence)
+        return modelUSE(sentence)
 
     embedded_first = embed(first_set)
     embedded_second = embed(second_set)
