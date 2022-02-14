@@ -1,6 +1,7 @@
 import os
 import pickle
 
+from sklearn.metrics._classification import precision_recall_fscore_support
 from sklearn.metrics.pairwise import cosine_similarity
 
 from pyproject.misure import cosine_distance_countvectorizer_method, jaccard_similarity, wordMover_word2vec, euclidean, \
@@ -25,7 +26,7 @@ def score(first, second, misura, flag_pre):
     second_set = second
 
     if flag_pre:
-        sentence = str(preprocessing(sentence))
+        sentence =str(preprocessing([sentence]))
         set = preprocessing(second_set)
         second_set = []
         for sent in set:
@@ -158,7 +159,6 @@ def original_us_dataframe():
     # salvataggio
     with open('out/user-story-original.xlsx.pkl', 'wb') as dfl:
         pickle.dump(df, dfl)
-
     return df
 
 
@@ -171,6 +171,8 @@ def excel_confronto(fileName, misura, flagPre):
 
     if flagPre:
         misura = misura + '_preProcessed'
+
+    print(misura)
 
     if misura in df.columns:
         return df
@@ -269,8 +271,6 @@ def rank_all(misura, flagPre):
 
 
 def avg_value(misura, flagPre):
-    if flagPre:
-        misura = misura + 'preProcessed'
 
     df_list = []
     for file in os.listdir("Data/Archive"):
@@ -281,6 +281,8 @@ def avg_value(misura, flagPre):
     (sumE, countE) = (0, 0)
     (sumOther, countOther) = (0, 0)
 
+    if flagPre:
+        misura = misura + '_preProcessed'
     for df in df_list:
         n = 0
         for lista in df[misura]:
@@ -329,3 +331,66 @@ def avg_value(misura, flagPre):
     print(misura)
     print('FAIL: ', fail)
     print('SUCCESS: ', succ)
+
+
+def precision_recall(misura, flagPre):
+
+    df_list = []
+    for file in os.listdir("Data/Archive"):
+        if file != 'user-story-original.xlsx':
+            df_list.append(excel_confronto(file, misura, flagPre))
+
+    (sumN, countN) = (0, 0)
+    (sumE, countE) = (0, 0)
+    (sumOther, countOther) = (0, 0)
+
+    if flagPre:
+        misura = misura + '_preProcessed'
+    for df in df_list:
+        n = 0
+        for lista in df[misura]:
+            val = float(lista[0][1])
+            if df['LABEL'][n] == 'E':
+                sumE = sumE + val
+                countE = countE + 1
+            elif df['LABEL'][n] == 'N':
+                sumN = sumN + val
+                countN = countN + 1
+            else:
+                sumOther = sumOther + val
+                countOther = countOther + 1
+            n = n + 1
+
+    avgE = sumE / countE
+    avgN = sumN / countN
+    avgOther = sumOther / countOther
+
+    exp_labels_list = []
+    calc_labels_list = []
+
+    for df in df_list:
+        n = 0
+        for lista in df[misura]:
+            val = float(lista[0][1])
+            diffE = abs(avgE - val)
+            diffN = abs(avgN - val)
+            diffOther = abs(avgOther - val)
+            minimo = min(diffE, diffN, diffOther)
+            if df['LABEL'][n] != 'E' and df['LABEL'][n] != 'N':
+                exp_labels_list.append('other')
+            else:
+                exp_labels_list.append(df['LABEL'][n])
+            if minimo == diffE:
+                calc_labels_list.append('E')
+            if minimo == diffN:
+                calc_labels_list.append('N')
+            if minimo == diffOther:
+                calc_labels_list.append('other')
+            n = n + 1
+
+    res = precision_recall_fscore_support(exp_labels_list, calc_labels_list, average='macro')
+    print(misura)
+    print ('PRECISION: ', res[0]) # ability of the classifier not to label as positive a sample that is negative.
+    print ('RECALL: ', res[1]) # ability of the classifier to find all the positive samples.
+    print ('F SCORE: ', res[2])
+

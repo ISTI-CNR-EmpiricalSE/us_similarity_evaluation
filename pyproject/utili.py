@@ -14,7 +14,7 @@ def preprocessing(userStories):
     :return: string list: modified user story list
     """
     words_to_remove = ["as a ", "as an ", "as "
-                                          "i want to be able to ", "i want to ", "i want ", "i only want ",
+                       "i want to be able to ", "i want to ", "i want ", "i only want ",
                        "i would like to ", "i would like a ", "i would be able to ", "i'm able to ",
                        "i am able to ", "so that i can ", "so that i ", "so that ", "so "]
     new_userStories = []
@@ -23,7 +23,6 @@ def preprocessing(userStories):
         for w in words_to_remove:
             sentence = sentence.replace(w, '')
         new_userStories.append(sentence)
-
     return new_userStories
 
 
