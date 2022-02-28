@@ -2,8 +2,8 @@ import argparse
 
 from anaconda_project.project_ops import download
 
-from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_confronto, rank_us, rank_all, avg_value, \
-    precision_recall
+from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_confronto, rank_us, rank_all, success_fail_all_files, \
+    prec_rec_all_files, success_fail_onebyone, prec_rec_onebyone
 from pyproject.parserFunctions import confronto, most_similar, \
     heatmap, confronta_tutti, get_line_byText, concat_all_dataframes, \
     find_file, find_file_test
@@ -135,7 +135,15 @@ def main():
                                   help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
                                        "wordMover_word2vec | euclidean | universal_sentence_encoder ")
     parser_excel_avg.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
-    parser_excel_avg.set_defaults(func=avg_value)
+    parser_excel_avg.set_defaults(func=success_fail_all_files)
+
+    # parser avg single file
+    parser_excel_avgs = subparsers.add_parser('excel_avg_s')
+    parser_excel_avgs.add_argument('misura', type=str,
+                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
+                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
+    parser_excel_avgs.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_excel_avgs.set_defaults(func=success_fail_onebyone)
 
     # parser precision/recall
     parser_excel_pr = subparsers.add_parser('prec_rec')
@@ -143,7 +151,15 @@ def main():
                                   help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
                                        "wordMover_word2vec | euclidean | universal_sentence_encoder ")
     parser_excel_pr.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
-    parser_excel_pr.set_defaults(func=precision_recall)
+    parser_excel_pr.set_defaults(func=prec_rec_all_files)
+
+    # parser precision/recall single file
+    parser_excel_prs = subparsers.add_parser('prec_rec_s')
+    parser_excel_prs.add_argument('misura', type=str,
+                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
+                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
+    parser_excel_prs.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
+    parser_excel_prs.set_defaults(func=prec_rec_onebyone)
 
     args = parser.parse_args()
     if args.parser == 'confronto':
@@ -177,6 +193,10 @@ def main():
     if args.parser == 'excel_avg':
         args.func(args.misura, args.p)
     if args.parser == 'prec_rec':
+        args.func(args.misura, args.p)
+    if args.parser == 'excel_avg_s':
+        args.func(args.misura, args.p)
+    if args.parser == 'prec_rec_s':
         args.func(args.misura, args.p)
 
 
