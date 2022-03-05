@@ -172,8 +172,6 @@ def excel_confronto(fileName, misura, flagPre):
     if flagPre:
         misura = misura + '_preProcessed'
 
-    print(misura)
-
     if misura in df.columns:
         return df
 
@@ -327,9 +325,10 @@ def success_fail_all_files(misura, flagPre):
                     fail = fail + 1
             n = n + 1
 
-    print(misura)
-    print('FAIL: ', fail)
-    print('SUCCESS: ', succ)
+    #print(misura)
+    print(succ/(fail+succ))
+    #print('FAIL: ', fail)
+    #print('SUCCESS: ', succ)
 
 
 def success_fail_one_file(fileName, misura, flagPre):
@@ -424,7 +423,7 @@ def success_fail_onebyone(misura, falgPre):
             success_fail_one_file(file, misura, falgPre)
 
 
-def prec_rec_all_files(misura, flagPre):
+def prec_rec_all_files_with_avg(misura, flagPre):
     df_list = []
     for file in os.listdir("Data/Archive"):
         if file != 'user-story-original.xlsx':
@@ -482,8 +481,58 @@ def prec_rec_all_files(misura, flagPre):
     print(misura)
     print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precisio
     print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
-    print('fscore: ', res[2])  # fscore
+    print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
 
+
+def prec_rec_all_files_2_labels(misura, flagPre):
+    df_list = []
+    for file in os.listdir("Data/Archive"):
+        if file != 'user-story-original.xlsx':
+            df_list.append(excel_confronto(file, misura, flagPre))
+
+    if flagPre:
+        misura = misura + '_preProcessed'
+
+    (minimo, massimo) = (100, 0)
+    for df in df_list:
+        for lista in df[misura]:
+            val = float(lista[0][1])
+            if val > massimo:
+                massimo = val
+            if val < minimo:
+                minimo = val
+
+    k = ((massimo + minimo)/2) - 0.3
+
+    exp_labels_list = []
+    calc_labels_list = []
+
+    for df in df_list:
+        n = 0
+        for lista in df[misura]:
+            if df['LABEL'][n] != 'E' and df['LABEL'][n] != 'N':
+                exp_labels_list.append('other')
+            else:
+                exp_labels_list.append('N')
+            val = float(lista[0][1])
+            if misura == "wordMover_word2vec" or misura == "euclidean" or \
+                    misura == "wordMover_word2vec_preProcessed" or misura == "euclidean_preProcessed":
+                if val > k:
+                    calc_labels_list.append('other')
+                else:
+                    calc_labels_list.append('N')
+            else:
+                if val > k:
+                    calc_labels_list.append('N')
+                else:
+                    calc_labels_list.append('other')
+
+            n = n + 1
+
+    res = precision_recall_fscore_support(exp_labels_list, calc_labels_list, average='macro', zero_division=1)
+    print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precision
+    print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
+    print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
 
 
 def prec_rec_one_file(fileName, misura, flagPre):
@@ -552,8 +601,7 @@ def prec_rec_one_file(fileName, misura, flagPre):
     res = precision_recall_fscore_support(exp_labels_list, calc_labels_list, average='macro')
     print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precisio
     print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
-    print('fscore: ', res[2])  # fscore
-
+    print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
 
 
 def prec_rec_one_file_2_labels(fileName, misura, flagPre):
@@ -567,14 +615,12 @@ def prec_rec_one_file_2_labels(fileName, misura, flagPre):
         misura = misura + '_preProcessed'
 
     (minimo, massimo) = (100, 0)
-    n = 0
     for lista in df[misura]:
         val = float(lista[0][1])
         if val > massimo:
             massimo = val
         if val < minimo:
             minimo = val
-        n = n + 1
 
     k = ((massimo + minimo)/2) - 0.3
 
@@ -605,7 +651,7 @@ def prec_rec_one_file_2_labels(fileName, misura, flagPre):
     res = precision_recall_fscore_support(exp_labels_list, calc_labels_list, average='macro', zero_division=1)
     print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precision
     print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
-    print('fscore: ', res[2])  # fscore
+    print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
 
 
 def prec_rec_onebyone(misura, falgPre):

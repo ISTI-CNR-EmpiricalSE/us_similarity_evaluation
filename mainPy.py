@@ -2,8 +2,9 @@ import argparse
 
 from anaconda_project.project_ops import download
 
-from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_confronto, rank_us, rank_all, success_fail_all_files, \
-    prec_rec_all_files, success_fail_onebyone, prec_rec_onebyone
+from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_confronto, rank_us, rank_all, \
+    success_fail_all_files, \
+    prec_rec_all_files_with_avg, success_fail_onebyone, prec_rec_onebyone, prec_rec_all_files_2_labels
 from pyproject.parserFunctions import confronto, most_similar, \
     heatmap, confronta_tutti, get_line_byText, concat_all_dataframes, \
     find_file, find_file_test
@@ -151,7 +152,7 @@ def main():
                                   help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
                                        "wordMover_word2vec | euclidean | universal_sentence_encoder ")
     parser_excel_pr.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
-    parser_excel_pr.set_defaults(func=prec_rec_all_files)
+    parser_excel_pr.set_defaults(func=prec_rec_all_files_with_avg)
 
     # parser precision/recall single file
     parser_excel_prs = subparsers.add_parser('prec_rec_s')
