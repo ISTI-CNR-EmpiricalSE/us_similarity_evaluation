@@ -206,7 +206,7 @@ def group_find_file(k, file_name, group_fun, misura, flagPre):
     """
 
     userStories = []
-    lines = open("Data/" + file_name, "r").readlines()
+    lines = open("Data/txt_test/" + file_name, "r").readlines()
     for line in lines:
         if line != '\n':
             userStories.append(line)
@@ -220,11 +220,12 @@ def group_find_file(k, file_name, group_fun, misura, flagPre):
     print("us test:")
     print(us_test)
 
-    files = os.listdir("Data")
+    files = os.listdir("Data/txt_test")
     val_list = []
+    # rimuovo dal file le US che sto testando
     for file in files:
         us = []
-        lines = open("Data/" + file, "r").readlines()
+        lines = open("Data/txt_test/" + file, "r").readlines()
         for line in lines:
             if line != '\n':
                 if file != file_name:
@@ -257,17 +258,4 @@ def group_find_file(k, file_name, group_fun, misura, flagPre):
     else:
         result = "fail"
 
-    if not "test_find_file" + ".pkl" in os.listdir("out"):
-        df = pd.DataFrame(columns=["file", "group_fun", "k", "similarity", "outcome", "result"])
-    else:
-        with open('out/test_find_file.pkl', 'rb') as dfl:
-            df = pickle.load(dfl)
-
-    df = df.append({"file": file_name, "group_fun": group_fun, "k": k,
-                    "similarity": misura, "outcome": result, "result": result_file}, ignore_index=True)
-
-    # salvataggio
-    with open('out/test_find_file.pkl', 'wb') as dfl:
-        pickle.dump(df, dfl)
-
-    return df, result
+    return result

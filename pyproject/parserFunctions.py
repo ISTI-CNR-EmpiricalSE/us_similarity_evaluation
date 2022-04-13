@@ -1,3 +1,5 @@
+import random
+
 from pyproject.groupSimilarities import group_find_file
 from pyproject.misure import jaccard_similarity, cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
     euclidean, lsi, universal_sentence_encoder
@@ -181,7 +183,6 @@ def most_similar(file, misura, flag_pre):
     max_list = []
 
     val_list = df[misura].tolist()
-    sorted_list = []
 
     # lista unica
     merged_list = []
@@ -232,6 +233,49 @@ def most_similar(file, misura, flag_pre):
     return max_list
 
 
+# dato file scelgo 2 requisiti random e ret le 2 us più simili
+def find_most_similar(file):
+    """
+    returns the most similar user stories in the file, using 'misura'
+    :param file: string
+    :param misura: string
+    :param flag_pre: default: False
+    :return: 2 coppie di user story più simili
+    """
+    # 2 indici random
+    df = confronta_tutti(file)
+    ind1 = random.randint(0, len(df) - 1)
+    ind2 = random.randint(0, len(df) - 1)
+    for misura in ['jaccard', 'cosine_vectorizer', 'bert_cosine',
+                   'wordMover_word2vec', 'euclidean', 'lsi_cosine', 'universal_sentence_encoder']:
+
+        # uso sempre preprocessing
+        misura = misura + '_preProcessed'
+
+        ind1_list = df[misura][ind1]
+        ind2_list = df[misura][ind2]
+
+        print(misura)
+        # caso con la us stessa come prima della lista
+        if ind1_list[0][0] == ind1_list[0][1]:
+            print(df['userStory'][ind1])
+            ind = ind1_list[1][1]
+            print(df['userStory'][ind])
+        else:
+            print(df['userStory'][ind1])
+            ind = ind1_list[0][1]
+            print(df['userStory'][ind])
+        # caso con la us stessa come prima della lista
+        if ind2_list[0][0] == ind2_list[0][1]:
+            print(df['userStory'][ind2])
+            ind = ind2_list[1][1]
+            print(df['userStory'][ind])
+        else:
+            print(df['userStory'][ind2])
+            ind = ind2_list[0][1]
+            print(df['userStory'][ind])
+
+
 # heatmap misura
 def heatmap(file, misura, flag_pre):
     """
@@ -258,8 +302,9 @@ def heatmap(file, misura, flag_pre):
     heat_df = pd.DataFrame(heat_list, columns=range(0, len(val_list)))
 
     heat = sns.heatmap(heat_df)
-    plt.show()
-    return "done"
+    plt.savefig('out/heatmap/' + file + misura + '.png')
+    plt.clf()
+    return
 
 
 # applica tutte le misure sul file
@@ -274,9 +319,7 @@ def confronta_tutti(file):
         df = pickle.load(dfl)
 
     colonne = ["jaccard", "cosine_vectorizer", "bert_cosine", "wordMover_word2vec",
-               "euclidean", "lsi_cosine", "universal_sentence_encoder", "jaccard_preProcessed",
-               "cosine_vectorizer_preProcessed", "bert_cosine_preProcessed", "wordMover_word2vec_preProcessed",
-               "euclidean_preProcessed", "lsi_cosine_preProcessed", "universal_sentence_encoder_preProcessed"]
+               "euclidean", "lsi_cosine", "universal_sentence_encoder"]
 
     colonne_df = df.columns
 
@@ -284,6 +327,12 @@ def confronta_tutti(file):
         if misura not in colonne_df:
             confronto(file, misura, False)
             df = confronto(file, misura, True)
+        if misura + '_preProcessed' not in colonne_df:
+            confronto(file, misura, False)
+            df = confronto(file, misura, True)
+
+        heatmap(file, misura, True)
+        heatmap(file, misura, False)
 
     return df
 
@@ -369,24 +418,23 @@ def find_file(n, file_us, k, group_fun, misura, flagPre):
     n_succ = 0
     n_fail = 0
     for i in range(0, n):
-        df, result = group_find_file(k, file_us, group_fun, misura, flagPre)
+        result = group_find_file(k, file_us, group_fun, misura, flagPre)
         if result == "success":
             n_succ = n_succ + 1
         else:
             n_fail = n_fail + 1
+
     if flagPre:
         misura = misura + 'preProcessed'
-    test_result = "file: " + file_us + ", misura: " + misura + " " + group_fun + ", k: " + str(
-        k) + ", % successi: " + str((n_succ / 100) * n) + "\n"
-    test_result_file = open("out/test_result.txt", "a")
+    test_result = file_us + ' ' + misura + ' ' + group_fun + ' ' + ', k = ' + str(k) + ', successi = ' + str(
+        n_succ) + ', tentativi =' + str(n) + '\n'
+    test_result_file = open("out/group_test_result.txt", "a")
     test_result_file.write(str(test_result))
     test_result_file.close()
     print(test_result)
 
-    return df
 
-
-def find_file_test(file_us, group_fun, misura, flagPre):
+def find_file_test(file_us, group_fun):
     """
     calls find_file with k = 1,2,3,4,5
     :param file_us: int
@@ -394,19 +442,11 @@ def find_file_test(file_us, group_fun, misura, flagPre):
     :param misura: string
     :param flagPre: boolean
     """
-
-    for i in range(1, 6):
-        find_file(10, file_us, i, group_fun, misura, flagPre)
-
-    file = open("out/test_result.txt", "r")
-    lines = file.readlines()
-    last_lines = lines[-5:]
-
-    res = []
-    for line in last_lines:
-        res.append(line.split()[-1])
-
-    plt.plot([1, 2, 3, 4, 5], res, 'ro')
-
-    plt.show()
+    for misura in ["jaccard", "cosine_vectorizer", "bert_cosine", "wordMover_word2vec",
+                   "euclidean", "lsi_cosine", "universal_sentence_encoder"]:
+        for i in range(1, 6):
+            # n = numero di test
+            n = 1
+            find_file(n, file_us, i, group_fun, misura, False)
+            find_file(n, file_us, i, group_fun, misura, True)
     return

@@ -7,7 +7,7 @@ from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_c
     prec_rec_all_files_with_avg, success_fail_onebyone, prec_rec_onebyone, prec_rec_all_files_2_labels
 from pyproject.parserFunctions import confronto, most_similar, \
     heatmap, confronta_tutti, get_line_byText, concat_all_dataframes, \
-    find_file, find_file_test
+    find_file, find_file_test, find_most_similar
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     parser_confronto.add_argument('usFile', type=str, help='file di user stories')
     parser_confronto.add_argument('misura', type=str,
                                   help="misure calcolabili: jaccard | cosine_vectorizer | bert_cosine | "
-                                       "wordMover_word2vec | euclidean | lsi_cosine | universal_sentence_encoder | all")
+                                       "wordMover_word2vec | euclidean | lsi_cosine | universal_sentence_encoder")
     parser_confronto.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
     parser_confronto.set_defaults(func=confronto)
 
@@ -34,6 +34,11 @@ def main():
                                           "wordMover_word2vec | euclidean | lsi_cosine | universal_sentence_encoder")
     parser_most_similar.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
     parser_most_similar.set_defaults(func=most_similar)
+
+    # parser comando most_similar (us più simili in un file)
+    parser_find_most_similar = subparsers.add_parser('find_most_similar')
+    parser_find_most_similar.add_argument('usFile', type=str, help='file di user stories')
+    parser_find_most_similar.set_defaults(func=find_most_similar)
 
     # parser comando heatmap di un file
     parser_heatmap = subparsers.add_parser('heatmap')
@@ -71,29 +76,11 @@ def main():
     parser_find_file.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
     parser_find_file.set_defaults(func=find_file)
 
-    # parser comando test di trova file di appartenenza
-    parser_find_file = subparsers.add_parser('find_file')
-    parser_find_file.add_argument('n', type=int, help='numero di test da fare')
-    parser_find_file.add_argument('usFile', type=str, help='file di user stories')
-    parser_find_file.add_argument('k', type=int, help='numero user Stories da estrarre')
-    parser_find_file.add_argument('group_fun', type=str, help='misure tra gruppi: avg, max, aggr')
-    parser_find_file.add_argument('misura', type=str,
-                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
-                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
-    parser_find_file.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
-    parser_find_file.set_defaults(func=find_file)
-
     # parser comando
     parser_find_file_test = subparsers.add_parser('find_file_test')
     parser_find_file_test.add_argument('usFile', type=str, help='file di user stories')
     parser_find_file_test.add_argument('group_fun', type=str, help='misure tra gruppi: avg, max, aggr')
-    parser_find_file_test.add_argument('misura', type=str,
-                                  help="misure consentite: jaccard | cosine_vectorizer | bert_cosine | "
-                                       "wordMover_word2vec | euclidean | universal_sentence_encoder ")
-    parser_find_file_test.add_argument('-p', action='store_true', help='flag per usare il preprocessing')
     parser_find_file_test.set_defaults(func=find_file_test)
-
-
 
     # parser crea dataframe del file
     parser_excel = subparsers.add_parser('excel')
@@ -167,6 +154,8 @@ def main():
         print(args.func(args.usFile, args.misura, args.p))
     if args.parser == 'most_similar':
         print(args.func(args.usFile, args.misura, args.p))
+    if args.parser == 'find_most_similar':
+        print(args.func(args.usFile))
     if args.parser == 'heatmap':
         print(args.func(args.usFile, args.misura, args.p))
     if args.parser == 'confronta_tutti':
@@ -179,8 +168,7 @@ def main():
         print(args.func(args.n, args.usFile, args.k,
                         args.group_fun, args.misura, args.p))
     if args.parser == 'find_file_test':
-        print(args.func(args.usFile,
-                        args.group_fun, args.misura, args.p))
+        print(args.func(args.usFile, args.group_fun))
     if args.parser == "excel":
         args.func(args.fileName)
     if args.parser == "excel_original":

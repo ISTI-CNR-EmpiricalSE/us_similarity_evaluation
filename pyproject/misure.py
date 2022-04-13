@@ -3,7 +3,6 @@ from gensim.models.lsimodel import LsiModel
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from scipy.spatial import distance
-from scipy.stats import entropy
 
 import gensim.corpora as corpora
 
