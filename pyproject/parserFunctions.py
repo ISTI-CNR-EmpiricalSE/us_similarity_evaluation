@@ -443,7 +443,7 @@ def find_file_test(file_us, group_fun):
     :param flagPre: boolean
     """
     for misura in ["jaccard", "cosine_vectorizer", "bert_cosine", "wordMover_word2vec",
-                   "euclidean", "lsi_cosine", "universal_sentence_encoder"]:
+                   "euclidean", "lsi_cosine"]:
         for i in range(1, 6):
             # n = numero di test
             n = 1
