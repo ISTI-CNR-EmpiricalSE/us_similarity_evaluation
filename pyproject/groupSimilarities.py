@@ -14,7 +14,6 @@ from nltk.corpus import stopwords
 from gensim import models, corpora, similarities
 
 import os
-import pandas as pd
 
 if not os.path.exists('fileUtili/GoogleNews-vectors-negative300.bin.gz'):
     raise ValueError("SKIP: You need to download the google news model")

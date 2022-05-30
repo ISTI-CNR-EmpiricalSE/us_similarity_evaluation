@@ -2,12 +2,11 @@ import argparse
 
 from anaconda_project.project_ops import download
 
-from pyproject.labeled import excel_to_dataframe, original_us_dataframe, excel_confronto, rank_us, rank_all, \
-    success_fail_all_files, \
-    prec_rec_all_files_with_avg, success_fail_onebyone, prec_rec_onebyone, prec_rec_all_files_2_labels
+from pyproject.labeled import excel_to_dataframe, original_us_dataframe
 from pyproject.parserFunctions import confronto, most_similar, \
     heatmap, confronta_tutti, get_line_byText, concat_all_dataframes, \
-    find_file, find_file_test, find_most_similar
+    find_file, find_file_test, find_most_similar, excel_confronto, success_fail_onebyone, success_fail_all_files, \
+    rank_all, rank_us, prec_rec_all_files_with_avg, prec_rec_onebyone, prec_rec_all_files_2_labels
 
 
 def main():
@@ -18,7 +17,7 @@ def main():
     subparsers = parser.add_subparsers(dest='parser')
 
     # parser comando confronto
-    parser_confronto = subparsers.add_parser('confronto')
+    parser_confronto = subparsers.add_parser('confronto', description = 'funzione che confronta le user story presenti nel file')
     parser_confronto.add_argument('usFile', type=str, help='file di user stories')
     parser_confronto.add_argument('misura', type=str,
                                   help="misure calcolabili: jaccard | cosine_vectorizer | bert_cosine | "
@@ -54,7 +53,7 @@ def main():
     parser_confronta_tutti.add_argument('usFile', type=str, help='file di user stories')
     parser_confronta_tutti.set_defaults(func=confronta_tutti)
 
-    # parser comando restituisci le ranked list della user story
+    # parser comando restituisce le ranked list della user story
     parser_get_line = subparsers.add_parser('get_line')
     parser_get_line.add_argument('usFile', type=str, help='file di user stories')
     parser_get_line.add_argument('us', type=str, help=' testo user story')
