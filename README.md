@@ -11,7 +11,4 @@ The software allows to analyze data in three different contexts:
 
 The analyses use the following embedding and measures: jaccard, cosine + count vectorizer, cosine + BERT, word mover distance + word2vec, euclidean, cosine + LSI, universal sentence encoder.
 
-## Installation
-
--- file di google
 
