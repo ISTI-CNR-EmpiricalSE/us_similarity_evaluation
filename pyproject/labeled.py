@@ -20,6 +20,13 @@ modelUSE = loadModelUSE()
 
 
 def score(first, second, misura, flag_pre):
+    """
+    :param first: string
+    :param second: string list
+    :param misura: string
+    :param flag_pre: boolean
+    :return: lista di confronti
+    """
     sentence = first
     second_set = second
 

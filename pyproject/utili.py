@@ -1,3 +1,5 @@
+import pickle
+
 from pyproject.generazioneDf import dfGen
 import sklearn
 import numpy as np
@@ -14,7 +16,7 @@ def preprocessing(userStories):
     :return: string list: modified user story list
     """
     words_to_remove = ["as a ", "as an ", "as "
-                       "i want to be able to ", "i want to ", "i want ", "i only want ",
+                                          "i want to be able to ", "i want to ", "i want ", "i only want ",
                        "i would like to ", "i would like a ", "i would be able to ", "i'm able to ",
                        "i am able to ", "so that i can ", "so that i ", "so that ", "so "]
     new_userStories = []
@@ -77,6 +79,10 @@ def transform(sentences):
 
 
 def sort_list(val_list):
+    """
+    :param val_list: lista di copppie (indice,valore)
+    :return:
+    """
     sorted_by_second = sorted(val_list, key=lambda tup: tup[1], reverse=True)
     return sorted_by_second
 
@@ -85,3 +91,16 @@ def loadModelUSE():
     module_url_USE = "https://tfhub.dev/google/universal-sentence-encoder/4"
     modelUSE = hub.load(module_url_USE)
     return modelUSE
+
+
+def to_csv(piFile):
+    """
+    :param piFile: string
+    :return:
+    """
+    with open('out/' + piFile + '.pkl', 'rb') as dfl:
+        df = pickle.load(dfl)
+
+        df.to_csv('out/csv/' + piFile + '.csv', index=False)
+        dfl.close()
+

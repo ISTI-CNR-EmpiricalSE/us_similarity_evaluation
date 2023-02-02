@@ -3,6 +3,10 @@ import pickle
 
 
 def dfGen(file):
+    """
+    :param file: string
+    :return: dataframe
+    """
     # lista dataframe di tutti i file
     df = pd.DataFrame(columns=["userStory"])
 

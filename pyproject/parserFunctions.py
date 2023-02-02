@@ -1,6 +1,5 @@
 import random
 
-from matplotlib import pyplot as plt
 from sklearn.metrics._classification import precision_recall_fscore_support
 
 from pyproject.groupSimilarities import group_find_file
@@ -11,8 +10,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from pyproject.utili import backup, sortTriple, preprocessing, transform, loadModelUSE, sort_list
 import pickle
 import seaborn as sns
-
-from nltk import download
 
 import pandas as pd
 import nltk
@@ -456,6 +453,13 @@ def find_file_test(file_us, group_fun):
 
 
 def excel_confronto(fileName, misura, flagPre):
+    """
+    confronta le user story di fileName con quelle originali, salva i risultati nel datfarme di fileName
+    :param fileName: string
+    :param misura: string
+    :param flagPre: boolean
+    :return: dataframe
+    """
     if not fileName + ".pkl" in os.listdir("out"):
         df = excel_to_dataframe(fileName)
     else:
@@ -493,12 +497,20 @@ def excel_confronto(fileName, misura, flagPre):
 
 
 def success_fail_onebyone(misura, falgPre):
+    """
+    :param misura: string
+    :param falgPre: boolean
+    """
     for file in os.listdir("Data/Archive"):
         if file != 'user-story-original.xlsx':
             success_fail_one_file(file, misura, falgPre)
 
 
 def success_fail_all_files(misura, flagPre):
+    """
+    :param misura: string
+    :param flagPre: string
+    """
     df_list = []
     for file in os.listdir("Data/Archive"):
         if file != 'user-story-original.xlsx':
@@ -562,6 +574,11 @@ def success_fail_all_files(misura, flagPre):
 
 
 def rank_all(misura, flagPre):
+    """
+    crea il grafico con i valori di similarità delle user story di tutti i file
+    :param misura: string
+    :param flagPre: boolean
+    """
     df_list = []
     for file in os.listdir("Data/Archive"):
         if file != 'user-story-original.xlsx':
@@ -571,25 +588,48 @@ def rank_all(misura, flagPre):
         misura = misura + '_preProcessed'
 
     i = 0
+    val_df = pd.DataFrame(columns=["E","N","other"])
+    e_list = []
+    n_list = []
+    other_list = []
     for df in df_list:
         n = 0
         for lista in df[misura]:
             val = float(lista[0][1])
             if df['LABEL'][n] == 'E':
                 col = 'coral'
+                e_list.append(val)
             elif df['LABEL'][n] == 'N':
                 col = 'lightblue'
+                n_list.append(val)
             else:
                 col = 'black'
+
+                other_list.append(val)
             plt.scatter(i, val, c=col)
             n = n + 1
             i = i + 1
+    print ('E')
+    for n in e_list:
+        print (n)
+    print ('N')
+    for n in n_list:
+        print (n)
+    print ('other')
+    for n in other_list:
+        print (n)
 
     plt.savefig('out/plots/all_' + misura + '.png')
     plt.show()
 
 
 def rank_us(fileName, misura, flagPre):
+    """
+    crea un grafico della similarità per le user story in fileName
+    :param fileName: string
+    :param misura: string
+    :param flagPre: boolean
+    """
     if not fileName + ".pkl" in os.listdir("out"):
         df = excel_to_dataframe(fileName)
     else:
@@ -630,74 +670,12 @@ def rank_us(fileName, misura, flagPre):
     return
 
 
-def prec_rec_all_files_with_avg(misura, flagPre):
-    df_list = []
-    for file in os.listdir("Data/Archive"):
-        if file != 'user-story-original.xlsx':
-            df_list.append(excel_confronto(file, misura, flagPre))
-
-    (sumN, countN) = (0, 0)
-    (sumE, countE) = (0, 0)
-    (sumOther, countOther) = (0, 0)
-
-    if flagPre:
-        misura = misura + '_preProcessed'
-    for df in df_list:
-        n = 0
-        for lista in df[misura]:
-            val = float(lista[0][1])
-            if df['LABEL'][n] == 'E':
-                sumE = sumE + val
-                countE = countE + 1
-            elif df['LABEL'][n] == 'N':
-                sumN = sumN + val
-                countN = countN + 1
-            else:
-                sumOther = sumOther + val
-                countOther = countOther + 1
-            n = n + 1
-
-    avgE = sumE / countE
-    avgN = sumN / countN
-    avgOther = sumOther / countOther
-
-    exp_labels_list = []
-    calc_labels_list = []
-
-    for df in df_list:
-        n = 0
-        for lista in df[misura]:
-            val = float(lista[0][1])
-            diffE = abs(avgE - val)
-            diffN = abs(avgN - val)
-            diffOther = abs(avgOther - val)
-            minimo = min(diffE, diffN, diffOther)
-            if df['LABEL'][n] != 'E' and df['LABEL'][n] != 'N':
-                exp_labels_list.append('other')
-            else:
-                exp_labels_list.append('N')
-            if minimo == diffE:
-                calc_labels_list.append('E')
-            if minimo == diffN:
-                calc_labels_list.append('N')
-            if minimo == diffOther:
-                calc_labels_list.append('other')
-            n = n + 1
-
-    res = precision_recall_fscore_support(exp_labels_list, calc_labels_list, average='macro')
-    print(misura)
-    print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precisio
-    print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
-    print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
-
-
-def prec_rec_onebyone(misura, falgPre):
-    for file in os.listdir("Data/Archive"):
-        if file != 'user-story-original.xlsx':
-            prec_rec_one_file_2_labels(file, misura, falgPre)
-
-
 def success_fail_one_file(fileName, misura, flagPre):
+    """
+    :param fileName: string
+    :param misura: string
+    :param flagPre: boolean
+    """
     if not fileName + ".pkl" in os.listdir("out"):
         df = excel_to_dataframe(fileName)
     else:
@@ -784,6 +762,10 @@ def success_fail_one_file(fileName, misura, flagPre):
 
 
 def prec_rec_all_files_2_labels(misura, flagPre):
+    """
+    :param misura: string
+    :param flagPre: boolean
+    """
     df_list = []
     for file in os.listdir("Data/Archive"):
         if file != 'user-story-original.xlsx':
@@ -835,6 +817,11 @@ def prec_rec_all_files_2_labels(misura, flagPre):
 
 
 def prec_rec_one_file(fileName, misura, flagPre):
+    """
+    :param fileName: string
+    :param misura: string
+    :param flagPre: boolean
+    """
     if not fileName + ".pkl" in os.listdir("out"):
         df = excel_to_dataframe(fileName)
     else:
@@ -904,6 +891,11 @@ def prec_rec_one_file(fileName, misura, flagPre):
 
 
 def prec_rec_one_file_2_labels(fileName, misura, flagPre):
+    """
+    :param fileName: string
+    :param misura: string
+    :param flagPre: boolean
+    """
     if not fileName + ".pkl" in os.listdir("out"):
         df = excel_to_dataframe(fileName)
     else:
@@ -951,3 +943,78 @@ def prec_rec_one_file_2_labels(fileName, misura, flagPre):
     print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precision
     print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
     print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
+
+
+def prec_rec_all_files_with_avg(misura, flagPre):
+    """
+    :param misura: string
+    :param flagPre: boolean
+    """
+    df_list = []
+    for file in os.listdir("Data/Archive"):
+        if file != 'user-story-original.xlsx':
+            df_list.append(excel_confronto(file, misura, flagPre))
+
+    (sumN, countN) = (0, 0)
+    (sumE, countE) = (0, 0)
+    (sumOther, countOther) = (0, 0)
+
+    if flagPre:
+        misura = misura + '_preProcessed'
+    for df in df_list:
+        n = 0
+        for lista in df[misura]:
+            val = float(lista[0][1])
+            if df['LABEL'][n] == 'E':
+                sumE = sumE + val
+                countE = countE + 1
+            elif df['LABEL'][n] == 'N':
+                sumN = sumN + val
+                countN = countN + 1
+            else:
+                sumOther = sumOther + val
+                countOther = countOther + 1
+            n = n + 1
+
+    avgE = sumE / countE
+    avgN = sumN / countN
+    avgOther = sumOther / countOther
+
+    exp_labels_list = []
+    calc_labels_list = []
+
+    for df in df_list:
+        n = 0
+        for lista in df[misura]:
+            val = float(lista[0][1])
+            diffE = abs(avgE - val)
+            diffN = abs(avgN - val)
+            diffOther = abs(avgOther - val)
+            minimo = min(diffE, diffN, diffOther)
+            if df['LABEL'][n] != 'E' and df['LABEL'][n] != 'N':
+                exp_labels_list.append('other')
+            else:
+                exp_labels_list.append('N')
+            if minimo == diffE:
+                calc_labels_list.append('E')
+            if minimo == diffN:
+                calc_labels_list.append('N')
+            if minimo == diffOther:
+                calc_labels_list.append('other')
+            n = n + 1
+
+    res = precision_recall_fscore_support(exp_labels_list, calc_labels_list, average='macro')
+    print(misura)
+    print('precision:', res[0])  # ability of the classifier not to label as positive a sample that is negative. precisio
+    print('recall: ', res[1])  # ability of the classifier to find all the positive samples. recall
+    print(2*(res[0]*res[1])/(res[0]+res[1]))  # fscore
+
+
+def prec_rec_onebyone(misura, falgPre):
+    """
+    :param misura: string
+    :param falgPre: boolean
+    """
+    for file in os.listdir("Data/Archive"):
+        if file != 'user-story-original.xlsx':
+            prec_rec_one_file_2_labels(file, misura, falgPre)

@@ -1,10 +1,8 @@
-import tensorflow_hub as hub
-
 from pyproject.misure import universal_sentence_encoder_2param, jaccard_similarity, \
     cosine_distance_countvectorizer_method, bert, wordMover_word2vec, \
     euclidean
 from pyproject.utili import preprocessing, transform, loadModelUSE
-import pickle
+
 
 from random import randint
 
@@ -21,6 +19,15 @@ modelUSE = loadModelUSE()
 
 
 def group_score(first, second, misura, flag_pre):
+    """
+    effettua il confronto tra le user story in first e quelle in second
+    restituisce la lista ordinata per valore
+    :param first: string list
+    :param second: string list
+    :param misura: string
+    :param flag_pre: boolean
+    :return: lista di triple (us1,us2,valore similarità tra us1 e us2)
+    """
     first_set = first
     second_set = second
 
@@ -106,6 +113,15 @@ def group_score(first, second, misura, flag_pre):
 
 
 def aggregate_score(first, second, misura, flag_pre):
+    """
+    effettua il confronto tra  first e second (stringhe contenenti user story)
+    restituisce il valore di similarità
+    :param first: string
+    :param second: string
+    :param misura: string
+    :param flag_pre: boolean
+    :return: float
+    """
     if flag_pre:
         first = str(preprocessing(first))
         second = str(preprocessing(second))
@@ -153,6 +169,15 @@ def aggregate_score(first, second, misura, flag_pre):
 
 
 def misuraMax(first, second, misura, flag_pre):
+    """
+    restituisce il massimo valore di similarità dopo il confronto tra
+    le user story in first e quelle in second
+    :param first: string list
+    :param second: string list
+    :param misura: string
+    :param flag_pre: boolean
+    :return: float
+    """
     score_list = group_score(first, second, misura, flag_pre)
 
     if misura == "wordMover_word2vec" or misura == "euclidean" \
@@ -170,6 +195,15 @@ def misuraMax(first, second, misura, flag_pre):
 
 
 def misuraAverage(first, second, misura, flag_pre):
+    """
+    restituisce il valore medio di similarità dopo il confronto tra
+    le user story in first e quelle in second
+    :param first: string list
+    :param second: string list
+    :param misura: string
+    :param flag_pre: boolean
+    :return: float
+    """
     score_list = group_score(first, second, misura, flag_pre)
 
     somma = 0
@@ -181,6 +215,15 @@ def misuraAverage(first, second, misura, flag_pre):
 
 
 def misuraAggregate(first, second, misura, flag_pre):
+    """
+    unifica le user story presenti in first in una unica string,
+    fa lo stesso con second, restitusice aggregate_score
+    :param first: string list
+    :param second: string list
+    :param misura:
+    :param flag_pre:
+    :return: float
+    """
     first_set = ""
     second_set = ""
     for sentence in first:
